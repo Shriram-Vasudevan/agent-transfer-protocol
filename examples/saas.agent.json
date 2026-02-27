@@ -1,0 +1,246 @@
+{
+  "@context": "https://atp.dev/schema/v1",
+  "@type": "AgentManifest",
+  "name": "TaskFlow",
+  "description": "Project management platform for teams. Create projects, manage tasks, track time, and collaborate with team members.",
+  "version": "1.0.0",
+  "provider": {
+    "name": "TaskFlow Inc.",
+    "url": "https://taskflow.io",
+    "contact": "developers@taskflow.io"
+  },
+  "auth": {
+    "schemes": [
+      {
+        "type": "oauth2",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://taskflow.io/oauth/authorize",
+            "tokenUrl": "https://taskflow.io/oauth/token",
+            "scopes": {
+              "read:projects": "View projects and their metadata",
+              "write:projects": "Create and modify projects",
+              "read:tasks": "View tasks, assignments, and status",
+              "write:tasks": "Create, update, and delete tasks",
+              "read:time": "View time tracking entries",
+              "write:time": "Log and modify time entries",
+              "read:team": "View team members and roles"
+            }
+          },
+          "clientCredentials": {
+            "tokenUrl": "https://taskflow.io/oauth/token",
+            "scopes": {
+              "read:projects": "View projects",
+              "read:tasks": "View tasks"
+            }
+          }
+        }
+      }
+    ],
+    "agentIdentity": {
+      "required": false
+    }
+  },
+  "rateLimit": {
+    "requests": 5000,
+    "window": "1h",
+    "burstLimit": 100
+  },
+  "capabilities": [
+    {
+      "id": "list-projects",
+      "name": "List Projects",
+      "description": "Retrieve all projects the authenticated user has access to, with optional filtering by status and team.",
+      "semanticType": "data:query",
+      "endpoint": "/api/v1/projects",
+      "method": "GET",
+      "parameters": [
+        {
+          "name": "status",
+          "type": "string",
+          "enum": ["active", "archived", "all"],
+          "default": "active"
+        },
+        {
+          "name": "team_id",
+          "type": "string",
+          "description": "Filter by team"
+        }
+      ],
+      "requiredScopes": ["read:projects"],
+      "sideEffects": false
+    },
+    {
+      "id": "create-task",
+      "name": "Create Task",
+      "description": "Create a new task within a project. Supports setting assignee, priority, due date, labels, and description.",
+      "semanticType": "data:query",
+      "endpoint": "/api/v1/projects/{project_id}/tasks",
+      "method": "POST",
+      "parameters": [
+        {
+          "name": "project_id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Task title"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "description": "Detailed task description (supports Markdown)"
+        },
+        {
+          "name": "assignee_id",
+          "type": "string",
+          "description": "User ID to assign the task to"
+        },
+        {
+          "name": "priority",
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"],
+          "default": "medium"
+        },
+        {
+          "name": "due_date",
+          "type": "string",
+          "format": "date",
+          "description": "Due date in YYYY-MM-DD format"
+        },
+        {
+          "name": "labels",
+          "type": "array",
+          "description": "Array of label names to apply"
+        }
+      ],
+      "requiredScopes": ["write:tasks"],
+      "sideEffects": true,
+      "confirmation": {
+        "required": false
+      }
+    },
+    {
+      "id": "update-task-status",
+      "name": "Update Task Status",
+      "description": "Move a task to a different status column (e.g., from 'In Progress' to 'Done').",
+      "semanticType": "data:query",
+      "endpoint": "/api/v1/tasks/{task_id}/status",
+      "method": "PATCH",
+      "parameters": [
+        {
+          "name": "task_id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "enum": ["backlog", "todo", "in_progress", "in_review", "done"],
+          "description": "New task status"
+        }
+      ],
+      "requiredScopes": ["write:tasks"],
+      "sideEffects": true
+    },
+    {
+      "id": "log-time",
+      "name": "Log Time",
+      "description": "Record time spent on a task. Supports adding notes about what was accomplished.",
+      "semanticType": "scheduling:time-log",
+      "endpoint": "/api/v1/tasks/{task_id}/time",
+      "method": "POST",
+      "parameters": [
+        {
+          "name": "task_id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "duration_minutes",
+          "type": "integer",
+          "required": true,
+          "minimum": 1,
+          "description": "Time spent in minutes"
+        },
+        {
+          "name": "date",
+          "type": "string",
+          "format": "date",
+          "description": "Date the work was done (defaults to today)"
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "description": "What was accomplished"
+        }
+      ],
+      "requiredScopes": ["write:time"],
+      "sideEffects": true
+    },
+    {
+      "id": "search-tasks",
+      "name": "Search Tasks",
+      "description": "Search across all tasks the user has access to. Supports full-text search with filters for status, assignee, priority, and date range.",
+      "semanticType": "data:query",
+      "endpoint": "/api/v1/tasks/search",
+      "method": "GET",
+      "parameters": [
+        {
+          "name": "q",
+          "type": "string",
+          "required": true,
+          "description": "Search query"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "enum": ["backlog", "todo", "in_progress", "in_review", "done"]
+        },
+        {
+          "name": "assignee_id",
+          "type": "string"
+        },
+        {
+          "name": "priority",
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"]
+        },
+        {
+          "name": "due_before",
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "name": "due_after",
+          "type": "string",
+          "format": "date"
+        }
+      ],
+      "requiredScopes": ["read:tasks"],
+      "sideEffects": false
+    }
+  ],
+  "workflows": [
+    {
+      "id": "triage-flow",
+      "name": "Task Triage",
+      "description": "Review projects, search for tasks, and update their status and priority.",
+      "steps": ["list-projects", "search-tasks", "update-task-status"]
+    }
+  ],
+  "schemas": {},
+  "policies": {
+    "training": "deny",
+    "inference": "allow",
+    "caching": {
+      "allowed": true,
+      "maxAge": 300
+    },
+    "attribution": "none"
+  }
+}

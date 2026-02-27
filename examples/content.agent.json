@@ -1,0 +1,150 @@
+{
+  "@context": "https://atp.dev/schema/v1",
+  "@type": "AgentManifest",
+  "name": "The Daily Chronicle",
+  "description": "Independent news publication covering technology, business, and science. Search articles, read content, and access archives dating back to 2010.",
+  "version": "1.0.0",
+  "provider": {
+    "name": "Chronicle Media LLC",
+    "url": "https://dailychronicle.com",
+    "contact": "api@dailychronicle.com"
+  },
+  "auth": {
+    "schemes": [
+      {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Agent-Key",
+        "registration": "https://dailychronicle.com/developers"
+      }
+    ],
+    "agentIdentity": {
+      "required": true,
+      "format": "did:web"
+    }
+  },
+  "rateLimit": {
+    "requests": 500,
+    "window": "1h",
+    "burstLimit": 20,
+    "tierUrl": "https://dailychronicle.com/developers/pricing"
+  },
+  "capabilities": [
+    {
+      "id": "search-articles",
+      "name": "Search Articles",
+      "description": "Full-text search across all published articles. Supports filtering by topic, author, date range, and content type.",
+      "semanticType": "content:article-search",
+      "endpoint": "/api/v1/articles/search",
+      "method": "GET",
+      "parameters": [
+        {
+          "name": "q",
+          "type": "string",
+          "required": true,
+          "description": "Search query"
+        },
+        {
+          "name": "topic",
+          "type": "string",
+          "enum": ["technology", "business", "science", "opinion", "analysis"],
+          "description": "Topic filter"
+        },
+        {
+          "name": "author",
+          "type": "string",
+          "description": "Filter by author name"
+        },
+        {
+          "name": "from_date",
+          "type": "string",
+          "format": "date",
+          "description": "Start of date range"
+        },
+        {
+          "name": "to_date",
+          "type": "string",
+          "format": "date",
+          "description": "End of date range"
+        },
+        {
+          "name": "sort",
+          "type": "string",
+          "enum": ["relevance", "newest", "oldest", "popular"],
+          "default": "relevance"
+        }
+      ],
+      "requiredScopes": [],
+      "sideEffects": false
+    },
+    {
+      "id": "read-article",
+      "name": "Read Article",
+      "description": "Retrieve the full text of a specific article, including headline, byline, publication date, body text, and related articles.",
+      "semanticType": "content:article-read",
+      "endpoint": "/api/v1/articles/{article_id}",
+      "method": "GET",
+      "parameters": [
+        {
+          "name": "article_id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "format",
+          "type": "string",
+          "enum": ["full", "summary", "markdown"],
+          "default": "full",
+          "description": "Response format — 'summary' returns first 500 chars, 'markdown' returns clean Markdown"
+        }
+      ],
+      "requiredScopes": [],
+      "sideEffects": false
+    },
+    {
+      "id": "get-trending",
+      "name": "Get Trending Articles",
+      "description": "Retrieve the current trending articles based on reader engagement over the past 24 hours.",
+      "semanticType": "content:article-search",
+      "endpoint": "/api/v1/articles/trending",
+      "method": "GET",
+      "parameters": [
+        {
+          "name": "topic",
+          "type": "string",
+          "enum": ["technology", "business", "science", "all"],
+          "default": "all"
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 50
+        }
+      ],
+      "requiredScopes": [],
+      "sideEffects": false
+    }
+  ],
+  "workflows": [
+    {
+      "id": "research-topic",
+      "name": "Topic Research",
+      "description": "Research a topic by searching articles, reading the most relevant ones, and checking what's currently trending.",
+      "steps": ["search-articles", "read-article", "get-trending"]
+    }
+  ],
+  "schemas": {},
+  "policies": {
+    "training": "deny",
+    "inference": "allow",
+    "caching": {
+      "allowed": true,
+      "maxAge": 1800
+    },
+    "attribution": "required",
+    "termsUrl": "https://dailychronicle.com/terms",
+    "privacyUrl": "https://dailychronicle.com/privacy"
+  }
+}
